@@ -34,32 +34,35 @@ Kafka的零拷贝（百度一面）
 
 > [图解Kafka的零拷贝技术到底有多牛？](https://cloud.tencent.com/developer/article/1421266)
 >
-> - DMA，全称叫Direct Memory Access，一种可让某些硬件子系统去直接访问系统主内存，而不用依赖CPU的计算机系统的功能
->
-> - 有了DMA后，就可以实现绝对的零拷贝了，因为网卡是直接去访问系统主内存的
+> - 传统的文件传输有多次用户态和内核态之间的切换，而且文件在多个buffer之间要复制多次最终才被发送到网卡。
+> - DMA是一种硬件直接访问系统主内存的技术。
+> - 多种硬件都已使用了DMA技术，其中就包括网卡（NIC）。
+> - DMA技术让CPU得到解放，让CPU可以不用一直守着来完成文件传输。
+> - 零拷贝技术减少了用户态与内核态之间的切换，让拷贝次数降到最低，从而实现高性能。
+> - Kafka使用零拷贝技术来进行文件的传输。
 
-消费者组（腾讯CDG事务开发一面）
+Kafka的分布式（Lazada一面，百度一面，腾讯CDG事务开发一面）
 
-> [怎么理解 Kafka 消费者与消费组之间的关系?](https://segmentfault.com/a/1190000039125247)
+> ![](../../../../中间件/Kafka 学习笔记/media/image-20210128203011762.png)
 >
-> - 如果所有的消费者都隶属于同一个消费组，那么所有的消息都会被均衡地投递给每一个消费者，即每条消息只会被一个消费者处理，这就相当于点对点模式的应用。
-> - 如果所有的消费者都隶属于不同的消费组，那么所有的消息都会被广播给所有的消费者，即每条消息会被所有的消费者处理，这就相当于发布/订阅模式的应用。
-
-Kafka的分布式（Lazada一面，百度一面）
-
-> ![Kafka Topic Partition](https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/2019-11/KafkaTopicPartitioning.png)
+> - Producer：消费生产者，就是向kafka broker发消息的客户端；
 >
-> 比较重要的几个概念
+> - Consumer：消息消费者，向kafka broker取消息的客户端；
 >
-> 1. **Producer（生产者）** : 产生消息的一方。
-> 2. **Consumer（消费者）** : 消费消息的一方。
-> 3. **Broker（代理）** : 可以看作是一个独立的 Kafka 实例。多个 Kafka Broker 组成一个 Kafka Cluster。
+> - Consumer Group（CG）：每个消费者属于一个特定的消费者组，一个消息可以被多个不同的消费者组消费。消费者组内每个消费者负责消费不同分区的数据，一个分区只能由一个组内消费者消费
+> - Broker：一台kafka服务器就是一个broker。一个集群由多个broker组成。一个broker可以容纳多个topic。
 >
-> 每个 Broker 中又包含了 Topic 以及 Partition 这两个重要的概念：
+> - Topic：可以理解为一个队列，生产者和消费者面向的都是一个topic；
 >
-> - **Topic（主题）** : Producer 将消息发送到特定的主题，Consumer 通过订阅特定的 Topic(主题) 来消费消息。
-> - **Partition（分区）** : Partition 属于 Topic 的一部分。一个 Topic 可以有多个 Partition ，并且同一 Topic 下的 Partition 可以分布在不同的 Broker 上，这也就表明一个 Topic 可以横跨多个 Broker 。
-> - **Replica（副本）**：分区（Partition）中的多个副本之间会有一个叫做 leader 的家伙，其他副本称为 follower。我们发送的消息会被发送到 leader 副本，然后 follower 副本才能从 leader 副本中拉取消息进行同步。
+> - Partition：为了实现可扩展性，一个非常大的topic可以分布到多个broker（即服务器）上，一个topic可以分为多个partition，每个partition是一个有序的队列；
+>
+> - Replica：副本，为保证集群中的某个节点发生故障时，该节点上的partition数据不会丢，且kafka仍然能够继续工作，kafka提供一个副本机制，一个topic的每个分区都有若干个副本，一个leader和若干个follower。
+>
+> - leader：每个分区多个副本的“主”，生产者发送数据的对象，以及消费者消费数据的对象都是leader。
+>
+> - follower：每个分区多个副本中的“从”，实时从leader中同步数据，保持和leader数据的同步。leader发生故障时，某个follower会成为新的leader。
+>
+> 
 >
 > **Kafka 的多分区（Partition）以及多副本（Replica）机制有什么好处呢？**
 >
